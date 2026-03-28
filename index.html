@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Face Scan Full Demo</title>
+<title>Face Scan Full Demo v.5</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body {
@@ -12,6 +12,13 @@ body {
   text-align:center; 
   margin:0; 
   padding:0;
+}
+#version{
+  position:fixed;
+  bottom:5px;
+  right:10px;
+  color:#ff00ff;
+  font-weight:bold;
 }
 #container{
   position:relative;
@@ -76,8 +83,9 @@ img{
 <button onclick="capture()">Allow Face Capture</button>
 <canvas id="canvas" style="display:none;"></canvas>
 <img id="photo"/>
-
 <div id="adminPanel"><h2>Admin Panel</h2></div>
+
+<div id="version">v.5</div>
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -86,14 +94,14 @@ img{
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-// Firebase Demo Config
+// 🔹 ใส่ config จริงของ Firebase ที่โปรเจกต์ของนาย
 const firebaseConfig = {
-  apiKey: "AIzaSyD-DemoKey-1234567890",
-  authDomain: "facescan-demo.firebaseapp.com",
-  projectId: "facescan-demo",
-  storageBucket: "facescan-demo.appspot.com",
-  messagingSenderId: "1234567890",
-  appId: "1:1234567890:web:demo123456"
+  apiKey: "ใส่ของจริง",
+  authDomain: "ใส่ของจริง",
+  projectId: "ใส่ของจริง",
+  storageBucket: "ใส่ของจริง",
+  messagingSenderId: "ใส่ของจริง",
+  appId: "ใส่ของจริง"
 };
 firebase.initializeApp(firebaseConfig);
 const storage = firebase.storage();
@@ -103,6 +111,7 @@ auth.signInAnonymously().catch(err=>console.log(err));
 
 const video = document.getElementById("video");
 const status = document.getElementById("status");
+const adminPanel = document.getElementById("adminPanel");
 
 // เปิดกล้องหน้า
 navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
@@ -131,24 +140,34 @@ async function capture(){
   await ref.put(blob);
   const url=await ref.getDownloadURL();
   await db.collection("capturedFaces").add({url:url,timestamp:Date.now()});
+
   alert("Face captured!");
+  
+  // ถ้า admin เปิดแล้วให้ append ทันที
+  if(adminPanel.style.display === "block"){
+    const img = document.createElement("img");
+    img.src = url;
+    img.style.maxWidth = "90vw";
+    adminPanel.appendChild(img);
+  }
 }
 
 // Admin login + ดูรูปเพื่อน
 async function adminLogin(){
   let pass=prompt("Enter admin password:");
   if(pass==="1234"){
-    document.getElementById("adminPanel").style.display="block";
-    const panel=document.getElementById("adminPanel");
-    panel.innerHTML="<h2>Admin Panel</h2>";
+    adminPanel.style.display="block";
+    adminPanel.innerHTML="<h2>Admin Panel</h2>"; // reset header
     const snapshot=await db.collection("capturedFaces").orderBy("timestamp","desc").get();
     snapshot.forEach(doc=>{
       const img=document.createElement("img");
       img.src=doc.data().url;
       img.style.maxWidth="90vw";
-      panel.appendChild(img);
+      adminPanel.appendChild(img);
     });
-  } else {alert("Wrong password");}
+  } else {
+    alert("Wrong password");
+  }
 }
 </script>
 </body>
