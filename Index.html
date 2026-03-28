@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Face Scan</title>
+<style>
+body {
+  background: black;
+  color: #00ffcc;
+  font-family: monospace;
+  text-align: center;
+}
+
+#container {
+  position: relative;
+  width: 300px;
+  margin: 40px auto;
+}
+
+video {
+  width: 100%;
+  border: 3px solid #00ffcc;
+}
+
+#line {
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  background: red;
+  top: 0;
+  animation: scan 2s linear infinite;
+}
+
+@keyframes scan {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+</style>
+</head>
+<body>
+
+<h2>Face Recognition Required</h2>
+<p>Allow camera access to continue</p>
+
+<div id="container">
+  <video id="video" autoplay></video>
+  <div id="line"></div>
+</div>
+
+<p id="status">Waiting for camera...</p>
+
+<script>
+const video = document.getElementById("video");
+const status = document.getElementById("status");
+
+// เปิดกล้อง
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+  video.srcObject = stream;
+  status.innerText = "Scanning...";
+  
+  setTimeout(() => {
+    status.innerText = "Analyzing face...";
+  }, 2000);
+
+  setTimeout(() => {
+    status.innerText = "Identity matched";
+  }, 4000);
+
+  setTimeout(() => {
+    status.innerText = "Access granted";
+  }, 6000);
+})
+.catch(err => {
+  status.innerText = "Camera access denied";
+});
+</script>
+
+</body>
+</html>
