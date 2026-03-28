@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Face Scan</title>
+
 <style>
 body {
   background: black;
@@ -35,12 +36,42 @@ video {
   0% { top: 0; }
   100% { top: 100%; }
 }
+
+/* ปุ่ม 3 จุด */
+#menuBtn {
+  position: fixed;
+  top: 10px;
+  right: 15px;
+  font-size: 28px;
+  background: transparent;
+  color: #00ffcc;
+  border: none;
+  cursor: pointer;
+}
+
+/* ปุ่มแคป */
+button {
+  margin-top: 10px;
+  padding: 8px 15px;
+  background: #00ffcc;
+  border: none;
+  cursor: pointer;
+}
+
+/* admin panel */
+#adminPanel {
+  display: none;
+  margin-top: 20px;
+}
 </style>
 </head>
+
 <body>
 
 <h2>Face Recognition Required</h2>
 <p>Allow camera access to continue</p>
+
+<button id="menuBtn" onclick="adminLogin()">⋮</button>
 
 <div id="container">
   <video id="video" autoplay></video>
@@ -48,6 +79,18 @@ video {
 </div>
 
 <p id="status">Waiting for camera...</p>
+
+<button onclick="capture()">Allow Face Capture</button>
+
+<canvas id="canvas" style="display:none;"></canvas>
+<img id="photo" width="300"/>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+  <h2>Admin Panel</h2>
+  <p>Captured Face:</p>
+  <img id="adminPhoto" width="300"/>
+</div>
 
 <script>
 const video = document.getElementById("video");
@@ -58,7 +101,7 @@ navigator.mediaDevices.getUserMedia({ video: true })
 .then(stream => {
   video.srcObject = stream;
   status.innerText = "Scanning...";
-  
+
   setTimeout(() => {
     status.innerText = "Analyzing face...";
   }, 2000);
@@ -74,6 +117,44 @@ navigator.mediaDevices.getUserMedia({ video: true })
 .catch(err => {
   status.innerText = "Camera access denied";
 });
+
+// แคปภาพ
+function capture() {
+  const canvas = document.getElementById("canvas");
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0);
+
+  let imgData = canvas.toDataURL("image/png");
+
+  // เก็บรูป
+  localStorage.setItem("capturedFace", imgData);
+
+  document.getElementById("photo").src = imgData;
+}
+
+// Admin login
+function adminLogin() {
+  let pass = prompt("Enter admin password:");
+
+  if(pass === "1234") {
+    document.getElementById("adminPanel").style.display = "block";
+
+    let saved = localStorage.getItem("capturedFace");
+
+    if(saved){
+      document.getElementById("adminPhoto").src = saved;
+    } else {
+      alert("No image found");
+    }
+
+  } else {
+    alert("Wrong password");
+  }
+}
 </script>
 
 </body>
